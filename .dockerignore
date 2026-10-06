@@ -1,0 +1,13 @@
+# 2026-10-01 新增：收敛 Docker 构建上下文（原样 COPY . . 会把以下目录全部送入 daemon）
+**/node_modules
+**/target
+**/dist
+RuoYi-Vue-master
+.riskfix-backup-20261001
+.git
+.idea
+*.log
+logs
+docs
+geo
+chrome-probe

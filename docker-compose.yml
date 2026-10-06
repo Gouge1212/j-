@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # 主台服务
+  ruoyi-master:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=druid
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=ry-vue-master
+      - DB_USERNAME=root
+      - DB_PASSWORD=123456
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - ruoyi-network
+
+  # TK服务（可根据需要复制多个）
+  # 总台对接：禁止 MASTER_URL / MASTER_API_KEY 明文环境变量；生产使用镜像内 master.endpoint.pkg（RSA 签名包）
+  ruoyi-sub:
+    build: .
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=druid
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=ry-vue-sub
+      - DB_USERNAME=root
+      - DB_PASSWORD=123456
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # - MASTER_URL=http://ruoyi-master:8080
+      # - MASTER_API_KEY=${MASTER_API_KEY}
+      - RUOYI_PROFILE=/app/data/uploadPath
+    volumes:
+      - ./data/backend-data:/app/data
+    depends_on:
+      - ruoyi-master
+      - mysql
+      - redis
+    networks:
+      - ruoyi-network
+
+  # MySQL数据库
+  mysql:
+    image: mysql:5.7
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=ry-vue-master
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d
+    networks:
+      - ruoyi-network
+
+  # Redis服务
+  redis:
+    image: redis:6.0
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ruoyi-network
+
+volumes:
+  mysql-data:
+  redis-data:
+
+networks:
+  ruoyi-network:
+    driver: bridge
